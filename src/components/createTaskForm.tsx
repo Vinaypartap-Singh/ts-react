@@ -18,9 +18,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import axios from "axios";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export const CreateTaskForm = () => {
   const [title, setTitle] = useState("");
@@ -29,16 +31,41 @@ export const CreateTaskForm = () => {
   const [date, setDate] = useState<Date | undefined>();
   const [description, setDescription] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const username = localStorage.getItem("user");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const taskData = {
+      username: username?.toString(),
       title,
       status,
       priority,
       dueDate: date,
       description,
     };
+
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/api/tasks/create",
+        taskData
+      );
+      if (response.status === 200) {
+        toast("Task Added");
+      }
+      location.reload();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          toast("An Error Occured", {
+            description: error.response.data?.message,
+          });
+        } else {
+          toast("An unexpected Error Occured");
+        }
+      }
+      console.error("Error creating task:", error);
+    }
 
     console.log("Submitted task:", taskData);
   };
@@ -67,8 +94,8 @@ export const CreateTaskForm = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="todo">Todo</SelectItem>
-                  <SelectItem value="inProgress">In Progress</SelectItem>
+                  <SelectItem value="TODO">Todo</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -81,9 +108,9 @@ export const CreateTaskForm = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="LOW">Low</SelectItem>
+                  <SelectItem value="NORMAL">Normal</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -118,13 +145,16 @@ export const CreateTaskForm = () => {
         <div className="py-2">
           <Textarea
             placeholder="Task Description"
+            className="w-full max-w-[350px]"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
 
         <div className="py-2 flex justify-end">
-          <Button type="submit">Create Task</Button>
+          <Button type="submit" className="w-full">
+            Create Task
+          </Button>
         </div>
       </form>
     </div>

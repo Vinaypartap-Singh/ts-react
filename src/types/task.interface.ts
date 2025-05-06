@@ -1,7 +1,8 @@
 export interface ITask {
+  id?: string;
   title: string;
   description: string;
-  status: "todo" | "inProgress" | "completed";
-  priority: "low" | "normal" | "high";
+  status: "TODO" | "IN_PROGRESS" | "COMPLETED";
+  priority: "NORMAL" | "HIGH" | "LOW";
   dueDate: Date;
 }
