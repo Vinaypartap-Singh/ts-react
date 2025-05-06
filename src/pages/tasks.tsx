@@ -2,43 +2,42 @@ import Loading from "@/components/loading";
 import Task from "@/components/task";
 import TaskCounter from "@/components/taskCounter";
 import TaskSidebar from "@/components/taskSidebar";
-import type { ITask } from "@/types/task.interface";
+import { useTaskStore } from "@/store/useTaskStore";
 import axios from "axios";
 import { useEffect, useState, type JSX } from "react";
 import { toast } from "sonner";
 
 export default function TasksPage(): JSX.Element {
-  const [tasks, setTasks] = useState<ITask[]>([]);
   const username = localStorage.getItem("user");
   const [loading, setLoading] = useState(false);
 
+  const tasks = useTaskStore((state) => state.tasks);
+  const fetchTasks = useTaskStore((state) => state.fetchTasks);
+
   useEffect(() => {
-    const getAllTasks = async () => {
+    const getTasks = async () => {
+      if (!username) return;
+
       setLoading(true);
       try {
-        const response = await axios.get(
-          `http://localhost:3000/api/tasks/list/${username}`
-        );
-        console.log(response);
-        setTasks(response.data.data);
-        setLoading(false);
+        await fetchTasks(username);
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          if (error.response?.status === 400) {
-            toast("An Error Occured", {
-              description: error.response.data?.message,
-            });
-            setLoading(false);
-          } else {
-            console.error("Unexpected error:", error);
-            setLoading(false);
-          }
+          toast("An error occurred", {
+            description:
+              error.response?.data?.message || "Something went wrong.",
+          });
+        } else {
+          console.error("Unexpected error:", error);
         }
+      } finally {
+        setLoading(false);
       }
     };
 
-    getAllTasks();
-  }, []);
+    getTasks();
+  }, [username, fetchTasks]);
+
   return (
     <section className="flex flex-row w-full p-6 gap-8">
       <section className="flex basis-2/3 justify-center">
@@ -48,10 +47,20 @@ export default function TasksPage(): JSX.Element {
           </h1>
 
           <div className="flex justify-around">
-            <TaskCounter status="TODO" count={10} />
-            <TaskCounter status="IN_PROGRESS" count={12} />
-            <TaskCounter status="COMPLETED" count={10} />
+            <TaskCounter
+              status="TODO"
+              count={tasks.filter((t) => t.status === "TODO").length}
+            />
+            <TaskCounter
+              status="IN_PROGRESS"
+              count={tasks.filter((t) => t.status === "IN_PROGRESS").length}
+            />
+            <TaskCounter
+              status="COMPLETED"
+              count={tasks.filter((t) => t.status === "COMPLETED").length}
+            />
           </div>
+
           {loading ? (
             <div className="mt-10 flex justify-center items-center">
               <Loading />
@@ -60,9 +69,9 @@ export default function TasksPage(): JSX.Element {
             <div className="mt-10 flex justify-center">
               {tasks.length !== 0 ? (
                 <div className="w-full max-w-xl">
-                  {tasks.map((task, index) => (
+                  {tasks.map((task) => (
                     <Task
-                      key={index}
+                      key={task.id}
                       id={task.id}
                       title={task.title}
                       description={task.description}
